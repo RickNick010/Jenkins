@@ -17,7 +17,7 @@ pipeline {
                     echo "Начинаем установку зависимостей..."
                     
                     python3 -m venv venv
-                    source venv/bin/activate
+                    . venv/bin/activate
                     pip install -r requirements.txt
                     
                     echo "Зависимости успешно установлены!"
@@ -102,7 +102,7 @@ def deployToEnvironment(String envName, String port) {
         echo "Версия Python: \$(python3 --version)"
         
         python3 -m venv venv || true
-        source venv/bin/activate
+        . venv/bin/activate
         pip install -r requirements.txt
         
         pm2 delete greetings-app-${envName} || true
