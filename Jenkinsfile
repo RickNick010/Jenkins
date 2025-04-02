@@ -2,11 +2,10 @@ pipeline {
     agent any
     
     stages {
-        stage('Установка зависимостей') {
+        stage('install-pip-deps') {
             steps {
-                echo "Установка всех необходимых зависимостей..."
+                echo "Installing all necessary dependencies..."
                 
-                // Клонирование репозитория Python Greetings
                 checkout([
                     $class: 'GitSCM',
                     branches: [[name: 'main']],
@@ -14,92 +13,89 @@ pipeline {
                 ])
                 
                 sh '''
-                    echo "Начинаем установку зависимостей..."
+                    echo "Starting dependencies installation..."
                     
                     python3 -m venv venv
                     . venv/bin/activate
                     pip install -r requirements.txt
                     
-                    echo "Зависимости успешно установлены!"
+                    echo "Dependencies successfully installed!"
                 '''
             }
         }
         
-        stage('Деплой в DEV') {
+        stage('deploy-to-dev') {
             steps {
-                echo "Деплой в DEV окружение..."
+                echo "Deploying to DEV environment..."
                 deployToEnvironment('dev', '7001')
             }
         }
         
-        stage('Тестирование в DEV') {
+        stage('tests-on-dev') {
             steps {
-                echo "Запуск тестов в DEV окружении..."
+                echo "Running tests in DEV environment..."
                 testInEnvironment('dev', '7001')
             }
         }
         
-        stage('Деплой в STAGING') {
+        stage('deploy-to-staging') {
             steps {
-                echo "Деплой в STAGING окружение..."
+                echo "Deploying to STAGING environment..."
                 deployToEnvironment('staging', '7002')
             }
         }
         
-        stage('Тестирование в STAGING') {
+        stage('tests-on-staging') {
             steps {
-                echo "Запуск тестов в STAGING окружении..."
+                echo "Running tests in STAGING environment..."
                 testInEnvironment('staging', '7002')
             }
         }
         
-        stage('Деплой в PREPROD') {
+        stage('deploy-to-preprod') {
             steps {
-                echo "Деплой в PREPROD окружение..."
+                echo "Deploying to PREPROD environment..."
                 deployToEnvironment('preprod', '7003')
             }
         }
         
-        stage('Тестирование в PREPROD') {
+        stage('tests-on-preprod') {
             steps {
-                echo "Запуск тестов в PREPROD окружении..."
+                echo "Running tests in PREPROD environment..."
                 testInEnvironment('preprod', '7003')
             }
         }
         
-        stage('Деплой в PROD') {
+        stage('deploy-to-prod') {
             steps {
-                echo "Деплой в PROD окружение..."
+                echo "Deploying to PROD environment..."
                 deployToEnvironment('prod', '7004')
             }
         }
         
-        stage('Тестирование в PROD') {
+        stage('tests-on-prod') {
             steps {
-                echo "Запуск тестов в PROD окружении..."
+                echo "Running tests in PROD environment..."
                 testInEnvironment('prod', '7004')
             }
         }
     }
 }
 
-// Функция для деплоя в указанное окружение
 def deployToEnvironment(String envName, String port) {
     sh """
-        echo "Деплой в ${envName} окружение..."
+        echo "Deploying to ${envName} environment..."
         
-        # Клонирование Python Greetings репозитория если не существует
         if [ ! -d "python-greetings" ]; then
             git clone https://github.com/mtararujs/python-greetings.git python-greetings
         fi
         
         cd python-greetings
         
-        # Остановка сервиса если существует
         pm2 delete greetings-app-${envName} || true
         
-        echo "Текущая директория: \$(pwd)"
-        echo "Версия Python: \$(python3 --version)"
+        echo "Current directory: \$(pwd)"
+        echo "Python version: \$(python3 --version)"
         
         python3 -m venv venv || true
         . venv/bin/activate
@@ -113,28 +109,24 @@ def deployToEnvironment(String envName, String port) {
     """
 }
 
-// Функция для тестирования в указанном окружении
 def testInEnvironment(String envName, String port) {
     sh """
-        echo "Запуск тестов в ${envName} окружении..."
+        echo "Running tests in ${envName} environment..."
         
-        # Клонирование API test framework
         if [ ! -d "course-js-api-framework" ]; then
             git clone https://github.com/mtararujs/course-js-api-framework.git course-js-api-framework
         fi
         
         cd course-js-api-framework
         npm install
-        
-        # Проверка доступности сервиса
-        echo "Проверка сервиса на http://localhost:${port}/greetings"
+
+        echo "Checking service at http://localhost:${port}/greetings"
         if curl -s -f http://localhost:${port}/greetings > /dev/null; then
-            echo "Сервис доступен на http://localhost:${port}/greetings"
+            echo "Service is available at http://localhost:${port}/greetings"
         else
-            echo "ПРЕДУПРЕЖДЕНИЕ: Сервис недоступен на http://localhost:${port}/greetings"
+            echo "WARNING: Service is not available at http://localhost:${port}/greetings"
         fi
         
-        # Создание конфигурации для тестов
         mkdir -p config
         
         cat > config/hosts.json << EOF
@@ -154,12 +146,12 @@ def testInEnvironment(String envName, String port) {
         }
         EOF
         
-        echo "Создан hosts.json с портом ${port}:"
+        echo "Created hosts.json with port ${port}:"
         cat config/hosts.json
         
         REQUESTS_FILE="tests/utils/requests.js"
         if [ -f "\$REQUESTS_FILE" ]; then
-          echo "Модификация requests.js"
+          echo "Modifying requests.js"
           
           cat > temp_requests.js << 'EOF_REQUESTS'
         import request from 'supertest';
@@ -183,11 +175,11 @@ def testInEnvironment(String envName, String port) {
         const config = getConfig();
         
         if (!config[env]) {
-          console.warn(`Warning: No configuration for \${env} environment, using dev`);
+          console.warn(`Warning: No configuration for ${env} environment, using dev`);
           config[env] = config.dev;
         }
 
-        console.log(`Using host: \${config[env].host} for environment: \${env}`);
+        console.log(`Using host: ${config[env].host} for environment: ${env}`);
 
         export default (method, url, data, headers) => {
           return request(config[env].host)[method](url).send(data).set(headers);
@@ -195,14 +187,14 @@ def testInEnvironment(String envName, String port) {
         EOF_REQUESTS
           
           mv temp_requests.js "\$REQUESTS_FILE"
-          echo "Файл requests.js успешно изменен"
+          echo "requests.js file successfully modified"
         else
-          echo "Ошибка: requests.js не найден!"
+          echo "Error: requests.js not found!"
         fi
         
         export TEST_ENV="${envName}"
-        echo "Установлена переменная TEST_ENV=\$TEST_ENV"
+        echo "Set variable TEST_ENV=\$TEST_ENV"
         
-        NODE_DEBUG=http npm run greetings greetings_${envName} || echo "Тесты завершились с ошибкой, но продолжаем выполнение"
+        NODE_DEBUG=http npm run greetings greetings_${envName} || echo "Tests finished with errors, but continuing execution"
     """
 }
