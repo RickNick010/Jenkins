@@ -175,11 +175,11 @@ def testInEnvironment(String envName, String port) {
         const config = getConfig();
         
         if (!config[env]) {
-          console.warn(`Warning: No configuration for ${env} environment, using dev`);
+          console.warn(\`Warning: No configuration for \${env} environment, using dev\`);
           config[env] = config.dev;
         }
 
-        console.log(`Using host: ${config[env].host} for environment: ${env}`);
+        console.log(\`Using host: \${config[env].host} for environment: \${env}\`);
 
         export default (method, url, data, headers) => {
           return request(config[env].host)[method](url).send(data).set(headers);
