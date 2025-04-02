@@ -119,7 +119,7 @@ def testInEnvironment(String envName, String port) {
         
         cd course-js-api-framework
         npm install
-        
+
         echo "Checking service at http://localhost:${port}/greetings"
         if curl -s -f http://localhost:${port}/greetings > /dev/null; then
             echo "Service is available at http://localhost:${port}/greetings"
@@ -153,36 +153,38 @@ def testInEnvironment(String envName, String port) {
         if [ -f "\$REQUESTS_FILE" ]; then
           echo "Modifying requests.js"
           
-          echo "import request from 'supertest';" > temp_requests.js
-          echo "import fs from 'fs';" >> temp_requests.js
-          echo "import path from 'path';" >> temp_requests.js
-          echo "" >> temp_requests.js
-          echo "function getConfig() {" >> temp_requests.js
-          echo "  try {" >> temp_requests.js
-          echo "    const configPath = path.resolve('config/hosts.json');" >> temp_requests.js
-          echo "    const configData = fs.readFileSync(configPath, 'utf8');" >> temp_requests.js
-          echo "    return JSON.parse(configData);" >> temp_requests.js
-          echo "  } catch (error) {" >> temp_requests.js
-          echo "    console.error('Error reading configuration:', error.message);" >> temp_requests.js
-          echo "    return {" >> temp_requests.js
-          echo "      dev: { host: 'http://localhost:3000' }" >> temp_requests.js
-          echo "    };" >> temp_requests.js
-          echo "  }" >> temp_requests.js
-          echo "}" >> temp_requests.js
-          echo "" >> temp_requests.js
-          echo "const env = process.env.TEST_ENV || 'dev';" >> temp_requests.js
-          echo "const config = getConfig();" >> temp_requests.js
-          echo "" >> temp_requests.js
-          echo "if (!config[env]) {" >> temp_requests.js
-          echo "  console.warn(\`Warning: No configuration for \${env} environment, using dev\`);" >> temp_requests.js
-          echo "  config[env] = config.dev;" >> temp_requests.js
-          echo "}" >> temp_requests.js
-          echo "" >> temp_requests.js
-          echo "console.log(\`Using host: \${config[env].host} for environment: \${env}\`);" >> temp_requests.js
-          echo "" >> temp_requests.js
-          echo "export default (method, url, data, headers) => {" >> temp_requests.js
-          echo "  return request(config[env].host)[method](url).send(data).set(headers);" >> temp_requests.js
-          echo "};" >> temp_requests.js
+          cat > temp_requests.js << 'EOF_REQUESTS'
+        import request from 'supertest';
+        import fs from 'fs';
+        import path from 'path';
+
+        function getConfig() {
+          try {
+            const configPath = path.resolve('config/hosts.json');
+            const configData = fs.readFileSync(configPath, 'utf8');
+            return JSON.parse(configData);
+          } catch (error) {
+            console.error('Error reading configuration:', error.message);
+            return {
+              dev: { host: 'http://localhost:3000' }
+            };
+          }
+        }
+
+        const env = process.env.TEST_ENV || 'dev';
+        const config = getConfig();
+        
+        if (!config[env]) {
+          console.warn(`Warning: No configuration for \${env} environment, using dev`);
+          config[env] = config.dev;
+        }
+
+        console.log(`Using host: \${config[env].host} for environment: \${env}`);
+
+        export default (method, url, data, headers) => {
+          return request(config[env].host)[method](url).send(data).set(headers);
+        };
+        EOF_REQUESTS
           
           mv temp_requests.js "\$REQUESTS_FILE"
           echo "requests.js file successfully modified"
